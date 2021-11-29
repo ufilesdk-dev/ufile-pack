@@ -1,0 +1,19 @@
+{
+  "log": {
+    "LogDir": "logs",
+    "LogPrefix": "us3_pack_",
+    "LogSuffix": ".log",
+    "LogSize": 50,
+    "LogLevel": "DEBUG"
+  },
+  "http": {
+    "端口": "监听的服务端口",
+    "Ip": "0.0.0.0",
+    "Port": 80
+  },
+  "us3_config": {
+    "密钥": "访问US3的密钥",
+    "public_key":"*********",
+    "private_key":"*********"
+  }
+}

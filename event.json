@@ -1,0 +1,7 @@
+{
+    "action": "GetUFiledZipByListRequest",
+    "prefix": "for-cwb-test-test/-test",
+    "file_list": "mput,main.py,mgr1,mgr",
+    "bucket_name":"for-cwb-test",
+    "file_host":"ufile.cn-north-02.ucloud.cn"
+}
