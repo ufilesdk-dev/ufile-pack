@@ -1,12 +1,12 @@
 # US3-PACK
 
-### 工具简介
+### 简介
 
-US3-PACK 一个将US3的多个文件打包成一个文件并上传到US3的工具。将 US3-PACK 部署在本地或者云主机中提供HTTP服务，接受打包请求，处理打包任务。
+US3-PACK 一个将US3的多个文件打包成一个文件并上传到US3的工具。这篇文章将会分享如何通过打包服务将US3上指定路径下的文件打包，从而可以方便您将打包好的归档文件下载到本地。
 
 ### 预先准备
 
-* 在[云主机控制台](https://console.ucloud.cn/uhost/uhost)上创建一台linux操作系统的Uhost云主机。
+* 在[云主机控制台](https://console.ucloud.cn/uhost/uhost)上创建一台linux操作系统的UHost云主机。
 * 在[US3控制台](https://console.ucloud.cn/ufile/token)上拿到具有对于目标桶上传下载，以及列取权限的令牌。
 
 ### 基本原理
@@ -23,7 +23,7 @@ US3-PACK 一个将US3的多个文件打包成一个文件并上传到US3的工�
 
 我们这里假定您已经创建了[云主机Uhost](https://console.ucloud.cn/uhost/uhost)，并且在[US3控制台](https://console.ucloud.cn/ufile/token)上拿到了对应的令牌。
 
-1. 下载打包工具 [工具包](https://github.com/ufilesdk-dev/ufile-pack/releases)
+1. 下载打包工具 [工具包](https://github.com/ufilesdk-dev/ufile-pack/releases/)
 
 2. 将工具包解压缩  `unzip US3-PACK.zip`
 
@@ -55,7 +55,7 @@ US3-PACK 一个将US3的多个文件打包成一个文件并上传到US3的工�
 
 5. 此时您可以发送POST请求到服务的根url (例如http://xxx.xxx.xxx.xxx)，请求参数有两种类型，分别对应指定某个前缀下的所有文件进行打包的任务，以及指定具体文件进行打包的任务。
 
-   > 注意，如果您申请的Uhost云主机只有内网IP，那么请您在同一台云主机上，或者同一VPC内部发送打包的POST请求。
+   > 注意，如果您申请的UHost云主机只有内网IP，那么请您在同一台云主机上，或者同一VPC内部发送打包的POST请求。
 
 #### 指定前缀进行打包
 
@@ -120,4 +120,4 @@ US3-PACK 一个将US3的多个文件打包成一个文件并上传到US3的工�
 
 ### 性能测试
 
-在使用1核1G内存的uhost主机，内网传输数据的情况下，打包55个20M文件(总大小1.15G)，的时间大概为30S。
+在使用1核1G内存的UHost主机，内网传输数据的情况下，打包55个20M文件(总大小1.15G)，的时间大概为30S。
