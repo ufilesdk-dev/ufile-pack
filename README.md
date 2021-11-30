@@ -23,7 +23,7 @@ US3-PACK 一个将US3的多个文件打包成一个文件并上传到US3的工�
 
 我们这里假定您已经创建了[云主机Uhost](https://console.ucloud.cn/uhost/uhost)，并且在[US3控制台](https://console.ucloud.cn/ufile/token)上拿到了对应的令牌。
 
-1. 下载打包工具 [工具包](https://github.com/ufilesdk-dev/ufile-pack/releases/download/v1.0.0/US3-PACK.zip)
+1. 下载打包工具 [工具包](https://github.com/ufilesdk-dev/ufile-pack/releases)
 
 2. 将工具包解压缩  `unzip US3-PACK.zip`
 
