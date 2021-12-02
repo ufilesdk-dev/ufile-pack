@@ -5,53 +5,44 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
-	"net/http"
+	"strings"
 	"time"
 	ufsdk "ufile-pack/gosdk"
 	uflog "ufile-pack/gosdk/log"
 	"ufile-pack/model"
 )
 
-type GetZipFileReq struct {
-	Action string `json:"action"`
-	Prefix string `json:"prefix"`
-
-	PublicKey  string `json:"public_key"`
-	PrivateKey string `json:"private_key"`
-	BucketName string `json:"bucket_name"`
-	FileHost   string `json:"file_host"`
+type GetZipFileByListFileItem struct {
+	Key    string `json:"key"`
+	NewKey string `json:"new_key"`
 }
 
-type GetZipFileRsp struct {
-	Action  string `json:"Action"`
-	Prefix  string `json:"Prefix"`
-	Key     string `json:"Key"`
-	RetCode int    `json:"RetCode"`
-	ErrMsg  string `json:"ErrMsg"`
+type GetZipFileByListExtReq struct {
+	Action     string                     `json:"action"`
+	FileList   []GetZipFileByListFileItem `json:"file_list"`
+	BucketName string                     `json:"bucket_name"`
+	FileHost   string                     `json:"file_host"`
 }
 
-func NewGetResPkgRsp() *GetZipFileRsp {
-	return &GetZipFileRsp{
-		Action:  "GetZipFileReq",
+type GetZipFileByListExtRsp struct {
+	Action   string                     `json:"Action"`
+	FileList []GetZipFileByListFileItem `json:"file_list"`
+	Key      string                     `json:"Key"`
+	RetCode  int                        `json:"RetCode"`
+	ErrMsg   string                     `json:"ErrMsg"`
+}
+
+func NewGetZipFileByListExtRsp() *GetZipFileByListExtRsp {
+	return &GetZipFileByListExtRsp{
+		Action:  "GetZipFileByListRsp",
 		RetCode: 0,
 		ErrMsg:  "",
 	}
 }
 
-type KV struct {
-	key  string
-	data *http.Response
-}
-
-type KVExt struct {
-	key     string
-	new_key string
-	data    *http.Response
-}
-
-func GetZipFileRequest(msg []byte) ([]byte, error) {
-	uflog.INFOF("GetZipFileRequest")
-	var osr GetZipFileReq
+func GetZipFileByListExtRequest(msg []byte) ([]byte, error) {
+	uflog.INFOF("GetZipFileByListExtRequest")
+	var osr GetZipFileByListExtReq
 	err := json.Unmarshal(msg, &osr)
 	if err != nil {
 		uflog.ERROR("GetUFileResourcePkg|json.Unmarshal|err:", err)
@@ -59,7 +50,7 @@ func GetZipFileRequest(msg []byte) ([]byte, error) {
 	}
 
 	uflog.DEBUG("request.body:", osr)
-	osp := NewGetResPkgRsp()
+	osp := NewGetZipFileByListExtRsp()
 	config := &ufsdk.Config{
 		PublicKey:  model.G_Config.US3Config.PublicKey,
 		PrivateKey: model.G_Config.US3Config.PrivateKey,
@@ -72,12 +63,12 @@ func GetZipFileRequest(msg []byte) ([]byte, error) {
 		osp.ErrMsg = err.Error()
 		osp.RetCode = -1
 	} else {
-		srcFile := osr.Prefix
-		destFile := "output/" + GenUuid() + ".zip" //srcFile + "_zip_" + strconv.Itoa(int(time.Now().Unix())) + ".zip"
+		srcFile := osr.FileList
+		destFile := "output/" + GenUuid() + ".zip"
 		osp.Key = destFile
-		osp.Prefix = osr.Prefix
+		osp.FileList = osr.FileList
 
-		go PackFiles(req, srcFile, destFile)
+		go PackFilesByListExt(req, srcFile, destFile)
 	}
 	response, err := json.Marshal(osp)
 	if err != nil {
@@ -88,58 +79,42 @@ func GetZipFileRequest(msg []byte) ([]byte, error) {
 	return response, nil
 }
 
-func getFileRequest(config *ufsdk.Config) (*ufsdk.UFileRequest, error) {
-	req, err := ufsdk.NewFileRequest(config, nil)
-	if err != nil {
-		return nil, err
-	}
-	return req, nil
-}
+func PackFilesByListExt(req *ufsdk.UFileRequest, srcFileList []GetZipFileByListFileItem, destFile string) error {
+	uflog.INFOF("create zip, srcFileList: %s, source_files: %s", srcFileList, destFile)
 
-func PackFiles(req *ufsdk.UFileRequest, prefix, destFile string) error {
-	uflog.INFOF("create zip, prefix: %s, source_files: %s", prefix, destFile)
-
-	//get PrivateKey
 	var (
 		partSise  = 1024 * 1024 * 4
 		startTime = time.Now()
-		queue     = make(chan KV)
+		queue     = make(chan KVExt)
 		queuePart = make(chan *bytes.Buffer, 10)
 		quit      = make(chan struct{})
 	)
 	// download
 	download := func() {
-		if prefix != "" {
-			mark := ""
-			for {
-				objList, err := req.PrefixFileList(prefix, mark, 0)
+		if len(srcFileList) != 0 {
+
+			num := 0
+			for _, content := range srcFileList {
+				Key := strings.Replace(content.Key, " ", "", -1)
+				NewKey := strings.Replace(content.NewKey, " ", "", -1)
+				if Key == "" {
+					continue
+				}
+				//var write bytes.Buffer
+				rsp, err := req.DownloadFile(Key)
 				if err != nil {
-					uflog.ERRORF("req.ListObjects err ", err.Error(), string(req.DumpResponse(true)))
+					uflog.ERRORF("DownloadFile err key = %s, err = %s ", Key, err.Error(), string(req.DumpResponse(true)))
+					continue
 				}
-				//uflog.INFOF("objLists len = %d", len(objList.DataSet))
-				//t.Total = len(objList.DataSet)
-				num := 0
-				for _, content := range objList.DataSet {
-					//var write bytes.Buffer
-					rsp, err := req.DownloadFile(content.FileName)
-					if err != nil {
-						uflog.ERRORF("DownloadFile err key = %s, err = %s ", content.FileName, err.Error(), string(req.DumpResponse(true)))
-						continue
-					}
-					data := KV{
-						key:  content.FileName,
-						data: rsp,
-					}
-					queue <- data
-					num++
+				data := KVExt{
+					key:     Key,
+					new_key: NewKey,
+					data:    rsp,
 				}
-				//uflog.INFOF("download obj num = %d", num)
-				if objList.NextMarker != "" {
-					mark = objList.NextMarker
-				} else {
-					break
-				}
+				queue <- data
+				num++
 			}
+
 			close(queue)
 		}
 	}
@@ -150,8 +125,13 @@ func PackFiles(req *ufsdk.UFileRequest, prefix, destFile string) error {
 		defer w.Close()
 		num := 0
 		for q := range queue {
-			key, data := q.key, q.data
+			key, data, new_key := q.key, q.data, q.new_key
 			uflog.INFOF("Download and Compression key = %s ", key)
+
+			if new_key != "" { // key rename here
+				key = new_key
+			}
+
 			f, err := w.Create(key)
 			if err != nil {
 				uflog.ERRORF("Create zipFile err %s", err.Error())
@@ -173,6 +153,7 @@ func PackFiles(req *ufsdk.UFileRequest, prefix, destFile string) error {
 					uflog.ERRORF("for-loop read data len = %d", n)
 					break
 				}
+				//log.Println("read n bytes...", num, n)
 				_, err = f.Write(tmpBuf)
 				if err != nil {
 					uflog.ERRORF("Write zipFile err %s", err.Error())
@@ -194,6 +175,7 @@ func PackFiles(req *ufsdk.UFileRequest, prefix, destFile string) error {
 			uflog.ERRORF("w.Close ", err)
 		}
 		if buf.Len() > 0 {
+			uflog.DEBUG("last part len：", buf.Len())
 			tmp := make([]byte, buf.Len())
 			buf.Read(tmp)
 			queuePart <- bytes.NewBuffer(tmp)
