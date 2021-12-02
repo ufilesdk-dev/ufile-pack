@@ -9,8 +9,9 @@ import (
 )
 
 const (
-	GetUFileZip       = "GetUFileZipRequest"
-	GetUFileZipByList = "GetUFileZipByListRequest"
+	GetUFileZip          = "GetUFileZipRequest"
+	GetUFileZipByList    = "GetUFileZipByListRequest"
+	GetUFileZipByListExt = "GetUFileZipByListExtRequest"
 )
 
 func HttpRouter(w http.ResponseWriter, r *http.Request) {
@@ -35,6 +36,8 @@ func HttpRouter(w http.ResponseWriter, r *http.Request) {
 		response, err = GetZipFileRequest(body)
 	case GetUFileZipByList:
 		response, err = GetZipFileByListRequest(body)
+	case GetUFileZipByListExt:
+		response, err = GetZipFileByListExtRequest(body)
 	default:
 		response = []byte("Action Not Support！ ")
 	}
